@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+</head>
+<style>
+    html {
+        width: 1260px;
+        height: 814px;
+
+    }
+
+    .body {
+        background-color: #0942F3;
+        margin: 20px;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .canvas {
+        display: flex;
+        justify-content: center;
+      
+        background: #99c727;
+        border: 6px solid;
+        position: absolute;
+        margin-top: 50px;
+        margin-left: 31px;
+
+    }
+
+    .img_conteiner {
+        display: flex;
+        justify-content: center;
+
+    }
+
+    .img {
+        display: flex;
+        justify-content: center;
+        height: 800px;
+        width: 450px;
+    }
+</style>
+
+<body class='body'>
+
+    <div class='img_conteiner'>
+        <canvas class='canvas' width="300" height="300"></canvas>
+            <script>
+                //set size of canvas
+                const CANVAS = 300;
+                //set loop interval
+                const INTERVAL = 80;
+                // size of snake
+                const WEIGHT = 10;
+                //set direction controls
+                const DIRECTION = {
+                    A: [-1, 0],
+                    D: [1, 0],
+                    S: [0, 1],
+                    W: [0, -1],
+                    a: [-1, 0],
+                    d: [1, 0],
+                    s: [0, 1],
+                    w: [0, -1],
+                    ArrowDown: [0, 1],
+                    ArrowUp: [0, -1],
+                    ArrowRight: [1, 0],
+                    ArrowLeft: [-1, 0],
+                }
+                //set controls of snake
+                let controls = {
+                    direction: { x: 1, y: 0 },
+                    snake: [{ x: 20, y: 0 }],
+                    food: { x: 0, y: 20 },
+                    playing: false,
+                    growing: 0
+                }
+
+                //directions
+                let where
+                //Reference to canvas in JS
+                let paper = document.querySelector("canvas");
+                //Reference to canvas context
+                let ctx = paper.getContext("2d");
+
+                let looper = () => {
+                    //represent snakes tail
+                    let tail = {}
+                    //clone last position of snake in tail
+                    Object.assign(tail, controls.snake[controls.snake.length - 1]);
+                    const head = controls.snake[0]
+                    
+                    //verifies if snake catch the food
+                    let eated = head.x === controls.food.x && head.y === controls.food.y;
+
+                    //verify colitions & reboot the game
+                    if(detectColitions()) {
+                        controls.playing = false;
+                        resetGame();
+                    }
+
+                    //reference to current direction 
+                    let posX = controls.direction.x;
+                    let posY = controls.direction.y;
+                    
+                    //saves size of the snake
+                    let size = controls.snake.length - 1;
+                    
+                    //ask if game is setted in true
+                    if (controls.playing) {
+                        for (let index = size; index > - 1; index--) {
+                            //reference to snakes head
+                            const head = controls.snake[index];
+                            // verify if is the head -> moves
+                            if (index === 0) {
+                                head.x += posX;
+                                head.y += posY;
+                            } else {
+                            //if is not the head set the node to the last position of the head    
+                                head.x = controls.snake[index - 1].x;
+                                head.y = controls.snake[index - 1].y
+                            }
+                        }
+                    }
+
+
+                    //validate if food is eated
+                    if (eated) {
+                        controls.growing += 3;
+                        newFood()
+                    }
+
+                    //ask if must add a tail node to the snake
+                    if (controls.growing > 0) {
+                        controls.snake.push(tail);
+                        controls.growing -= 1; 
+                    }
+
+                    //call to animation frame
+                    requestAnimationFrame(drawing);
+                    setTimeout(looper, INTERVAL);
+
+                }
+                //detecting if crashes with walls or itself
+                let detectColitions = () => {
+                    const head = controls.snake[0];
+
+                    if(head.x < 0 || head.x >= CANVAS/WEIGHT || head.y >= CANVAS/WEIGHT || head.y < 0) {
+                        return true
+                    }
+
+                    for (let index = 1; index < controls.snake.length; index++) {
+                        const heading = controls.snake[index];
+                        if(heading.x === head.x && heading.y === head.y) {
+                            return true
+                        }
+                
+                    }
+
+                }
+
+                //set in where the new direction             
+                document.onkeydown = (e) => {
+                    where = DIRECTION[e.key];
+                    //destructuring positions
+                    const [x, y] = where;
+                    //validate snake cant go back on the same direction
+                    if (-x !== controls.direction.x && -y !== controls.direction.y) {
+                        controls.direction.x = x;
+                        controls.direction.y = y;
+                    }
+
+
+                }
+
+                
+                let drawing = () => {
+                    //clear canvas
+                    ctx.clearRect(0, 0, CANVAS, CANVAS);
+                    //iterate on snakes body
+                    for (let index = 0; index < controls.snake.length; index++) {
+                        const { x, y } = controls.snake[index];
+                        foodDrawing('#263A09', x, y);
+                    }
+
+                    const food = controls.food;
+                    foodDrawing('#263A09', food.x, food.y)
+                }
+
+                
+                let foodDrawing = (color, x, y) => {
+                    //asign color
+                    ctx.fillStyle = '#263A09';
+                    //Rect created (positionX, positionY, height, weight)
+                    ctx.fillRect(x * WEIGHT, y * WEIGHT, 10, 10);
+                }
+
+                
+                let random = () => {
+                    let onDirection = Object.values(DIRECTION)
+                    return {
+                        x: parseInt(Math.random() * CANVAS / WEIGHT),
+                        y: parseInt(Math.random() * CANVAS / WEIGHT),
+                        //direction random when starts
+                        d: onDirection[parseInt(Math.random() * 11)]
+                    }
+                }
+
+
+
+                let newFood = () => {
+                    let newPosition = random();
+                    let food = controls.food;
+                    food.x = newPosition.x;
+                    food.y = newPosition.y;
+                }
+
+                let resetGame = () => {
+                    controls = {
+                    direction: { x: 1, y: 0 },
+                    snake: [{ x: 40, y: 0 }],
+                    food: { x: 0, y: 250 },
+                    playing: false,
+                    growing: 0
+                }
+                    positions = random();
+                    let head = controls.snake[0];
+                    head.x = positions.x;
+                    head.y = positions.y;
+                    controls.direction.x = positions.d[0];
+                    controls.direction.y = positions.d[1];
+                    //random position of food
+                    positionFood = random(CANVAS);
+                    console.log('POSITION',positionFood)
+                    let food = controls.food;
+                    food.x = positionFood.x;
+                    food.y = positionFood.y;
+                    controls.playing = true;
+                    
+                }
+
+                //when document is load calls looper
+                window.onload = () => {
+                    resetGame()
+                    looper()
+                }
+
+
+            </script>
+      
+        <img src='./gameboy.jpg' class='img' />
+    </div>
+
+
+</body>
+
+</html>
